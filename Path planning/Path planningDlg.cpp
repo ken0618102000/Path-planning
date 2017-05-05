@@ -326,10 +326,10 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 // 			{
 // 				cvLine(draw_data, cvPoint(savepoint1[i].x * 10, savepoint1[i].y * 10), cvPoint(savepoint2[i].x * 10, savepoint2[i].y * 10), CV_RGB(0, 0, 255), 1);
 // 			}
-			for (int i = 0; i < new_input_index; i++)  //GVD圖
-			{
-				cvLine(draw_data, cvPoint(new_savepoint1[i].x * 10, new_savepoint1[i].y * 10), cvPoint(new_savepoint2[i].x * 10, new_savepoint2[i].y * 10), CV_RGB(250, 100, 100), 2);
-			}
+// 			for (int i = 0; i < new_input_index; i++)  //GVD圖
+// 			{
+// 				cvLine(draw_data, cvPoint(new_savepoint1[i].x * 10, new_savepoint1[i].y * 10), cvPoint(new_savepoint2[i].x * 10, new_savepoint2[i].y * 10), CV_RGB(250, 100, 100), 2);
+// 			}
 
 // 			for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
 // 			{
@@ -375,7 +375,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			path_optimization_size_change = path_optimization.size();
 //			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
 
-			Path_simulation(jump_path_optimization, 50, jump_path_optimization_simulation, car_simulation, draw_data);
+			Path_simulation(jump_path_optimization, 2, jump_path_optimization_simulation, car_simulation, draw_data);
 			jump_path_optimization.clear();
 
 			cvSaveImage("大圖輸出.png", draw_data);
@@ -1079,7 +1079,7 @@ void CPathplanningDlg::Path_Optimization(vector<vector<bool>> i_sca_image, vecto
 	}
 }
 
-void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&draw_data)
+void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show)
 {
 	double sampleTime = 50;
 	double pixel2cm = 100;
@@ -1095,8 +1095,8 @@ void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density
 	//CvPoint draw_car[6];
 	int carsize = 20;
 	int initial_scale = 100;
-//	IplImage * draw_data = NULL;
-// 	draw_data = cvCreateImage(cvSize(880, 880), IPL_DEPTH_8U, 3);
+	IplImage * live_show = NULL;
+
 // 	cvSetZero(draw_data);
 	CvPoint draw_oringin[2];
 
@@ -1216,6 +1216,8 @@ void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density
 
 			if (jump_draw % i_car_density == 1)
 			{
+				live_show = cvCloneImage(offline_show);
+
 				draw_car_temp.car[0] = cvPoint(x_here + x_transpos + carsize * cos(zdir_here + 0.7854), -y_here + y_transpos - carsize * sin(zdir_here + 0.7854));
 				draw_car_temp.car[1] = cvPoint(x_here + x_transpos + carsize * cos(0.7854 - zdir_here), -y_here + y_transpos + carsize * sin(0.7854 - zdir_here));
 				draw_car_temp.car[2] = cvPoint(x_here + x_transpos - carsize * cos(zdir_here + 0.7854), -y_here + y_transpos + carsize * sin(zdir_here + 0.7854));
@@ -1225,13 +1227,22 @@ void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density
 
 				local_draw_car.push_back(draw_car_temp);
 
-				cvLine(draw_data, draw_car_temp.car[0], draw_car_temp.car[1], CV_RGB(0, 255, 0), 2);
-				cvLine(draw_data, draw_car_temp.car[1], draw_car_temp.car[2], CV_RGB(0, 255, 0), 2);
-				cvLine(draw_data, draw_car_temp.car[2], draw_car_temp.car[3], CV_RGB(0, 255, 0), 2);
-				cvLine(draw_data, draw_car_temp.car[3], draw_car_temp.car[0], CV_RGB(0, 255, 0), 2);
-				cvLine(draw_data, draw_car_temp.car[4], draw_car_temp.car[5], CV_RGB(255, 0, 0), 2);
+				cvLine(live_show, draw_car_temp.car[0], draw_car_temp.car[1], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_car_temp.car[1], draw_car_temp.car[2], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_car_temp.car[2], draw_car_temp.car[3], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_car_temp.car[3], draw_car_temp.car[0], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_car_temp.car[4], draw_car_temp.car[5], CV_RGB(255, 0, 0), 2);
+// 				cvLine(offline_show, draw_car_temp.car[0], draw_car_temp.car[1], CV_RGB(0, 255, 0), 2);
+// 				cvLine(offline_show, draw_car_temp.car[1], draw_car_temp.car[2], CV_RGB(0, 255, 0), 2);
+// 				cvLine(offline_show, draw_car_temp.car[2], draw_car_temp.car[3], CV_RGB(0, 255, 0), 2);
+// 				cvLine(offline_show, draw_car_temp.car[3], draw_car_temp.car[0], CV_RGB(0, 255, 0), 2);
+// 				cvLine(offline_show, draw_car_temp.car[4], draw_car_temp.car[5], CV_RGB(255, 0, 0), 2);
 				//					cvLine(draw_data, draw_oringin[0], draw_oringin[1], CV_RGB(255, 100, 255), 2);
 
+				cvShowImage("draw_data", live_show); // 動態顯示模擬
+				cvWaitKey(30); // 停留視窗
+				cvReleaseImageData(live_show);
+				Sleep(10);
 			}
 
 			CPoint temp_xy;
@@ -1239,7 +1250,7 @@ void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density
 			temp_xy.y = y_save[y_save.size() - 1];
 			o_sim_path.push_back(temp_xy);
 
-			if ((abs(x_here - target_pos_sim[0] * pixel2cm / 100) < 0.02  && abs(y_here - target_pos_sim[1] * pixel2cm / 100) < 0.02) || jump_draw > 600 /*|| zdir_here < 0.2*/)
+			if ((abs(x_here - target_pos_sim[0] * pixel2cm / 100) < 1  && abs(y_here - target_pos_sim[1] * pixel2cm / 100) < 1) /*|| jump_draw > 50 || zdir_here < 0.2*/)
 			{
 				jump_path_optimization_copy_sim.erase(jump_path_optimization_copy_sim.begin(), jump_path_optimization_copy_sim.begin() + 1);
 				break;
@@ -1252,12 +1263,12 @@ void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density
 
 		for (int i = 0; i < x_save.size() - 1; i++)
 		{
-			cvLine(draw_data, cvPoint((int)x_save[i], (int)y_save[i]), cvPoint((int)x_save[i + 1], (int)y_save[i + 1]), CV_RGB(150, 150, 255), 2);
+			cvLine(offline_show, cvPoint((int)x_save[i], (int)y_save[i]), cvPoint((int)x_save[i + 1], (int)y_save[i + 1]), CV_RGB(150, 150, 255), 2);
 		}
 
 	}
 
-	
+	cvReleaseImage(&live_show);
 	o_sim_car = local_draw_car;
 	local_draw_car.clear();
 
@@ -1290,8 +1301,8 @@ void CPathplanningDlg::Control_Methods(bool control_type, double i_rho, double i
 	if (control_type)
 	{
 		//原始線性控制
-		o_vr = 3 * i_rho + 0.15 * (8 * i_alpha - 4 * (i_beta));
-		o_vl = 3 * i_rho - 0.15 * (8 * i_alpha - 4 * (i_beta));
+		o_vr = 3 * i_rho + 0.15 * (18 * i_alpha - 4 * (i_beta));
+		o_vl = 3 * i_rho - 0.15 * (18 * i_alpha - 4 * (i_beta));
 		o_vr = o_vr / 10;
 		o_vl = o_vl / 10;
 	}

@@ -336,18 +336,18 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 // 				cvLine(draw_data, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 3);
 // 			}
 
-			float close_path = 200;
+			float pathpoint_dis = 200;
 			int jump_num2 = 20000, jump_num;
 			int path_opt = 0;
 
-			for (int path_opt = 0; path_opt < path_optimization.size() ; path_opt++) //畫出路徑優化圖
+			for (int path_opt = 0; path_opt < path_optimization.size() ; path_opt++) //路徑優化搜尋
 			{
 				if (path_optimization_size_change != path_optimization.size())
 				{
 					jump_num = 3000000;
 				}
 
-				if (close_path > 16)  //16
+				if (pathpoint_dis > 16)  //16
 				{
 					//					first_in = sqrtf(pow((all_point_map[path_optimization[0]].x - all_point_map[path_optimization[1]].x), 2) + pow((all_point_map[path_optimization[0]].y - all_point_map[path_optimization[1]].y), 2)) / 2;
 					jump_num2 = path_optimization[path_opt];
@@ -366,14 +366,14 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 					break;
 				else
 				{
-					close_path = sqrtf(pow((all_point_map[path_optimization[0]].x - all_point_map[path_optimization[path_opt + 1]].x), 2) + pow((all_point_map[path_optimization[0]].y - all_point_map[path_optimization[path_opt + 1]].y), 2));
+					pathpoint_dis = sqrtf(pow((all_point_map[path_optimization[0]].x - all_point_map[path_optimization[path_opt + 1]].x), 2) + pow((all_point_map[path_optimization[0]].y - all_point_map[path_optimization[path_opt + 1]].y), 2));
 					cvLine(draw_data, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), cvPoint(all_point_map[path_optimization[path_opt + 1]].x, all_point_map[path_optimization[path_opt + 1]].y), CV_RGB(0, 150, 0), 3);
 					cvCircle(draw_data, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), 7, CV_RGB(0, 150, 0), 2);
 				}
 			}
 
 			path_optimization_size_change = path_optimization.size();
-			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
+//			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
 
 			Path_simulation(jump_path_optimization, 50, jump_path_optimization_simulation, car_simulation, draw_data);
 			jump_path_optimization.clear();
@@ -1111,7 +1111,7 @@ void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density
 	float x_transpos = jump_path_optimization_copy_sim[1].x;
 	float y_transpos = jump_path_optimization_copy_sim[1].y;
 
-	for (int path_num = 0; path_num < i_path.size() - 2; path_num++)
+	for (int path_num = 0; path_num < i_path.size() - 1; path_num++)
 	{
 
 		jump_draw = 0;

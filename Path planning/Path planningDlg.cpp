@@ -221,11 +221,11 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 	char path0[100];
 	int photo_conunt = 0;
 
-	CvPoint start_point, end_point;
-	start_point.x = 280;  //路徑起始與終點，請參照圖片給定
-	start_point.y = 797;
-	end_point.x = 840;
-	end_point.y = 39;
+	CvPoint robot_start_point[2], robot_end_point[2];  //宣告多機器人之起點與終點
+	robot_start_point[0].x = 280;  //路徑起始與終點，請參照圖片給定
+	robot_start_point[0].y = 797;
+	robot_end_point[0].x = 840;
+	robot_end_point[0].y = 39;
 	
 	while (true)
 	 {
@@ -310,7 +310,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			//VD點會破碎，將其重新聚合
 			Match_point(line_count, new_input_index, new_savepoint1, new_savepoint2, 2);
 			//Dijkstra路徑搜尋，輸入點連接資訊跟數量
-			Dijkstra_path_planning(start_point, end_point, new_savepoint1, new_savepoint2, new_input_index, all_point_map, all_point_map_original);
+			Dijkstra_path_planning(0, robot_start_point, robot_end_point, new_savepoint1, new_savepoint2, new_input_index, all_point_map, all_point_map_original);
 			//路徑優化，輸入二值資訊與原本路徑
 			Path_Optimization(sca_image, all_point_map_original, path_optimization);
 
@@ -375,7 +375,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			path_optimization_size_change = path_optimization.size();
 //			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
 
-			Path_simulation(jump_path_optimization, 2, jump_path_optimization_simulation, car_simulation, draw_data);
+			MultiRobot_Path_simulation(jump_path_optimization, 2, jump_path_optimization_simulation, car_simulation, draw_data);
 			jump_path_optimization.clear();
 
 			cvSaveImage("大圖輸出.png", draw_data);
@@ -384,7 +384,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			show1.CopyOf(draw_data);
 			show1.Show(*pDC2, 0, 0, draw_data->width, draw_data->height);
 
-			//-------------------------------------------繪圖---------------------------------------
+			//-------------------------------------------繪製小地圖---------------------------------------
 
 // 			IplImage * itest2 = NULL;
 // 			IplImage * itest = NULL;
@@ -436,8 +436,8 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 		m_total_time = 1000 / ((tEnd.QuadPart - tStart.QuadPart) * 1000 / (double)(ts.QuadPart));
 		m_coner_count = Data[0] + 1; //顯示角點數量
 		UpdateData(FALSE);
-
-		photo_conunt++;
+		break;
+//		photo_conunt++;
 	}
 
 	
@@ -878,7 +878,7 @@ void CPathplanningDlg::Match_point(int i_line_count, int i_new_input_index, CvPo
 	}
 }
 
-void CPathplanningDlg::Dijkstra_path_planning(CvPoint i_robot_start, CvPoint  i_robot_end, CvPoint2D64f i_new_savepoint1[3000], CvPoint2D64f i_new_savepoint2[3000], int i_new_input_index, vector <CPoint> &o_all_point_map, vector <CvPoint2D64f> &o_all_point_map_original)
+void CPathplanningDlg::Dijkstra_path_planning(int i_highest_robot_priority, CvPoint i_robot_start[2], CvPoint  i_robot_end[2], CvPoint2D64f i_new_savepoint1[3000], CvPoint2D64f i_new_savepoint2[3000], int i_new_input_index, vector <CPoint> &o_all_point_map, vector <CvPoint2D64f> &o_all_point_map_original)
 {
 	remove("所有座標編號.txt");
 	fstream app_path_num("所有座標編號.txt", ios::app);
@@ -967,8 +967,8 @@ void CPathplanningDlg::Dijkstra_path_planning(CvPoint i_robot_start, CvPoint  i_
 	for (int serch = 0; serch < put_index; serch++)
 	{
 		
-		serch_point[0] = sqrt(pow((o_all_point_map[serch].x - i_robot_start.x), 2) + pow((o_all_point_map[serch].y - i_robot_start.y), 2));
-		serch_point[1] = sqrt(pow((o_all_point_map[serch].x - i_robot_end.x), 2) + pow((o_all_point_map[serch].y - i_robot_end.y), 2));
+		serch_point[0] = sqrt(pow((o_all_point_map[serch].x - i_robot_start[i_highest_robot_priority].x), 2) + pow((o_all_point_map[serch].y - i_robot_start[i_highest_robot_priority].y), 2));
+		serch_point[1] = sqrt(pow((o_all_point_map[serch].x - i_robot_end[i_highest_robot_priority].x), 2) + pow((o_all_point_map[serch].y - i_robot_end[i_highest_robot_priority].y), 2));
 
 
 		if (serch_point[2] > serch_point[0])
@@ -1079,7 +1079,7 @@ void CPathplanningDlg::Path_Optimization(vector<vector<bool>> i_sca_image, vecto
 	}
 }
 
-void CPathplanningDlg::Path_simulation(vector <CPoint> i_path, int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show)
+void CPathplanningDlg::MultiRobot_Path_simulation(vector <CPoint> i_path, int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show)
 {
 	double sampleTime = 50;
 	double pixel2cm = 100;

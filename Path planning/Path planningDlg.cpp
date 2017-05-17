@@ -374,15 +374,11 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			path_optimization_size_change = path_optimization.size();
 //			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
 
-			MultiRobot_Path_simulation(jump_path_optimization, 2, jump_path_optimization_simulation, car_simulation, draw_data);
-			jump_path_optimization.clear();
-
-			cvSaveImage("大圖輸出.png", draw_data);
 			m_show2.SetWindowPos(&wndTop, 10, 10, draw_data->width, draw_data->height, SWP_SHOWWINDOW);
-			CvvImage show1;
-			show1.CopyOf(draw_data);
-			show1.Show(*pDC2, 0, 0, draw_data->width, draw_data->height);
 
+			MultiRobot_Path_simulation(pDC2, show_data, jump_path_optimization, 2, jump_path_optimization_simulation, car_simulation, draw_data);
+			jump_path_optimization.clear();
+			cvSaveImage("大圖輸出.png", draw_data);
 			//-------------------------------------------繪製小地圖---------------------------------------
 
 // 			IplImage * itest2 = NULL;
@@ -1081,7 +1077,7 @@ void CPathplanningDlg::Path_Optimization(vector<vector<bool>> i_sca_image, vecto
 	}
 }
 
-void CPathplanningDlg::MultiRobot_Path_simulation(vector <CPoint> i_path, int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show)
+void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_data, vector <CPoint> i_path, int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show)
 {
 	double sampleTime = 50;
 	double pixel2cm = 100;
@@ -1241,10 +1237,14 @@ void CPathplanningDlg::MultiRobot_Path_simulation(vector <CPoint> i_path, int i_
 // 				cvLine(offline_show, draw_car_temp.car[4], draw_car_temp.car[5], CV_RGB(255, 0, 0), 2);
 				//					cvLine(draw_data, draw_oringin[0], draw_oringin[1], CV_RGB(255, 100, 255), 2);
 
-				cvShowImage("draw_data", live_show); // 動態顯示模擬
-				cvWaitKey(30); // 停留視窗
+				CvvImage show1;
+				show1.CopyOf(live_show);
+				show1.Show(*i_pDC, 0, 0, live_show->width, live_show->height);
+
+// 				cvShowImage("draw_data", live_show); // 動態顯示模擬
+// 				cvWaitKey(30); // 停留視窗
 				cvReleaseImageData(live_show);
-				Sleep(10);
+// 				Sleep(5);
 			}
 
 			CPoint temp_xy;

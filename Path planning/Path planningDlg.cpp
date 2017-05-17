@@ -178,7 +178,6 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 	CWnd* CW_vo = (CWnd *)GetDlgItem(IDC_STATIC_show2);
 	CDC* pDC2 = CW_vo->GetWindowDC();
 
-
 	remove("路徑輸出.txt");
 
 	IplConvKernel *pKernel_small = NULL;
@@ -223,7 +222,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 
 	CvPoint robot_start_point[2], robot_end_point[2];  //宣告多機器人之起點與終點
 	robot_start_point[0].x = 280;  //路徑起始與終點，請參照圖片給定
-	robot_start_point[0].y = 797;
+	robot_start_point[0].y = 880;
 	robot_end_point[0].x = 840;
 	robot_end_point[0].y = 39;
 	
@@ -880,9 +879,6 @@ void CPathplanningDlg::Match_point(int i_line_count, int i_new_input_index, CvPo
 
 void CPathplanningDlg::Dijkstra_path_planning(int i_highest_robot_priority, CvPoint i_robot_start[2], CvPoint  i_robot_end[2], CvPoint2D64f i_new_savepoint1[3000], CvPoint2D64f i_new_savepoint2[3000], int i_new_input_index, vector <CPoint> &o_all_point_map, vector <CvPoint2D64f> &o_all_point_map_original)
 {
-	remove("所有座標編號.txt");
-	fstream app_path_num("所有座標編號.txt", ios::app);
-
 	vector <CPoint> CPoint_savepoint1;
 	vector <CPoint> CPoint_savepoint2;
 
@@ -899,7 +895,7 @@ void CPathplanningDlg::Dijkstra_path_planning(int i_highest_robot_priority, CvPo
 	//先丟入第一組，以免檢查時vector時沒東西
 	o_all_point_map.push_back(CPoint_savepoint1[0]);
 	o_all_point_map_original.push_back(i_new_savepoint1[0]);
-	app_path_num << o_all_point_map[put_index].x << ", " << o_all_point_map[put_index].y << " 第 " << put_index << endl;
+	/*	app_path_num << o_all_point_map[put_index].x << ", " << o_all_point_map[put_index].y << " 第 " << put_index << endl;*/
 	put_index++;
 
 	for (int i = 0; i < i_new_input_index; i++)
@@ -914,7 +910,7 @@ void CPathplanningDlg::Dijkstra_path_planning(int i_highest_robot_priority, CvPo
 		{
 			o_all_point_map.push_back(CPoint_savepoint1[i]);
 			o_all_point_map_original.push_back(i_new_savepoint1[i]); // 原始的也排列一次
-			app_path_num << o_all_point_map[put_index].x << ", " << o_all_point_map[put_index].y << " 第 " << put_index << endl;
+																	 //			app_path_num << o_all_point_map[put_index].x << ", " << o_all_point_map[put_index].y << " 第 " << put_index << endl;
 			put_index++;
 		}
 	}
@@ -931,12 +927,42 @@ void CPathplanningDlg::Dijkstra_path_planning(int i_highest_robot_priority, CvPo
 		{
 			o_all_point_map.push_back(CPoint_savepoint2[i]);
 			o_all_point_map_original.push_back(i_new_savepoint2[i]); // 原始的也排列一次
-			app_path_num << o_all_point_map[put_index].x << ", " << o_all_point_map[put_index].y << " 第 " << put_index << endl;
+																	 //			app_path_num << o_all_point_map[put_index].x << ", " << o_all_point_map[put_index].y << " 第 " << put_index << endl;
 			put_index++;
 		}
 	}
 
 	int savetemp_index1, savetemp_index2;
+	int the_point_index[2];
+	int serch_point[4];
+	serch_point[2] = 100000;
+	serch_point[3] = 100000;
+
+	for (int serch = 0; serch < put_index; serch++)
+	{
+
+		serch_point[0] = sqrt(pow((o_all_point_map[serch].x - i_robot_start[i_highest_robot_priority].x), 2) + pow((o_all_point_map[serch].y - i_robot_start[i_highest_robot_priority].y), 2));
+		serch_point[1] = sqrt(pow((o_all_point_map[serch].x - i_robot_end[i_highest_robot_priority].x), 2) + pow((o_all_point_map[serch].y - i_robot_end[i_highest_robot_priority].y), 2));
+
+
+		if (serch_point[2] > serch_point[0])
+		{
+			serch_point[2] = serch_point[0];
+			the_point_index[0] = serch;
+		}
+		if (serch_point[3] > serch_point[1])
+		{
+			serch_point[3] = serch_point[1];
+			the_point_index[1] = serch;
+		}
+	}
+
+	o_all_point_map.push_back(CPoint(i_robot_start[i_highest_robot_priority].x, i_robot_start[i_highest_robot_priority].y));
+	CPoint_savepoint1.push_back(CPoint(i_robot_start[i_highest_robot_priority].x, i_robot_start[i_highest_robot_priority].y));
+	o_all_point_map_original.push_back(cvPoint2D64f(i_robot_start[i_highest_robot_priority].x / 10, i_robot_start[i_highest_robot_priority].y / 10));
+	CPoint_savepoint2.push_back(CPoint(o_all_point_map[the_point_index[0]].x, o_all_point_map[the_point_index[0]].y));
+	i_new_input_index++;
+	put_index++;
 
 	for (loop1 = 0; loop1 < i_new_input_index; loop1++)
 	{
@@ -958,32 +984,8 @@ void CPathplanningDlg::Dijkstra_path_planning(int i_highest_robot_priority, CvPo
 		w[savetemp_index2][savetemp_index1] = w[savetemp_index1][savetemp_index2];
 	}
 
-	fstream app_jumppath_output("捷徑輸出.txt", ios::app);
 
-	int the_point_index[2];
-	int serch_point[4];
-	serch_point[2] = 100000;
-	serch_point[3] = 100000;
-	for (int serch = 0; serch < put_index; serch++)
-	{
-		
-		serch_point[0] = sqrt(pow((o_all_point_map[serch].x - i_robot_start[i_highest_robot_priority].x), 2) + pow((o_all_point_map[serch].y - i_robot_start[i_highest_robot_priority].y), 2));
-		serch_point[1] = sqrt(pow((o_all_point_map[serch].x - i_robot_end[i_highest_robot_priority].x), 2) + pow((o_all_point_map[serch].y - i_robot_end[i_highest_robot_priority].y), 2));
-
-
-		if (serch_point[2] > serch_point[0])
-		{
-			serch_point[2] = serch_point[0];
-			the_point_index[0] = serch;
-		}
-		if (serch_point[3] > serch_point[1])
-		{
-			serch_point[3] = serch_point[1];
-			the_point_index[1] = serch;
-		}
-	}
-
-	dijkstra(the_point_index[0], o_all_point_map.size());
+	dijkstra(put_index - 1, o_all_point_map.size());
 	find_path(the_point_index[1]);
 
 }

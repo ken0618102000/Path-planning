@@ -216,15 +216,20 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 	draw_data = cvCreateImage(cvGetSize(read_data), read_data->depth, 3);
 	check_change = cvCreateImage(cvGetSize(read_data), read_data->depth, 1);
 	show_data = cvCreateImage(cvSize(88, 88), IPL_DEPTH_8U, 1);
-
+	m_show2.SetWindowPos(&wndTop, 10, 10, draw_data->width, draw_data->height, SWP_SHOWWINDOW);
 	char path0[100];
 	int photo_conunt = 0;
 
 	CvPoint robot_start_point[2], robot_end_point[2];  //宣告多機器人之起點與終點
-	robot_start_point[0].x = 280;  //路徑起始與終點，請參照圖片給定
+	robot_start_point[0].x = 580;  //路徑起始與終點，請參照圖片給定
 	robot_start_point[0].y = 880;
-	robot_end_point[0].x = 840;
+	robot_end_point[0].x = 440;
 	robot_end_point[0].y = 39;
+
+	robot_start_point[1].x = 580;  //路徑起始與終點，請參照圖片給定
+	robot_start_point[1].y = 880;
+	robot_end_point[1].x = 440;
+	robot_end_point[1].y = 39;
 	
 	while (true)
 	 {
@@ -321,19 +326,19 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 // 			{
 // 				cvLine(draw_data, cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), CV_RGB(0, 250, 250), 8);
 // 			}
-// 			for (int i = 0; i < line_count; i++)   //VD圖
-// 			{
-// 				cvLine(draw_data, cvPoint(savepoint1[i].x * 10, savepoint1[i].y * 10), cvPoint(savepoint2[i].x * 10, savepoint2[i].y * 10), CV_RGB(0, 0, 255), 1);
-// 			}
-// 			for (int i = 0; i < new_input_index; i++)  //GVD圖
-// 			{
-// 				cvLine(draw_data, cvPoint(new_savepoint1[i].x * 10, new_savepoint1[i].y * 10), cvPoint(new_savepoint2[i].x * 10, new_savepoint2[i].y * 10), CV_RGB(250, 100, 100), 2);
-// 			}
+ 			for (int i = 0; i < line_count; i++)   //VD圖
+ 			{
+ 				cvLine(draw_data, cvPoint(savepoint1[i].x * 10, savepoint1[i].y * 10), cvPoint(savepoint2[i].x * 10, savepoint2[i].y * 10), CV_RGB(0, 0, 255), 1);
+ 			}
+ 			for (int i = 0; i < new_input_index; i++)  //GVD圖
+ 			{
+ 				cvLine(draw_data, cvPoint(new_savepoint1[i].x * 10, new_savepoint1[i].y * 10), cvPoint(new_savepoint2[i].x * 10, new_savepoint2[i].y * 10), CV_RGB(250, 100, 100), 2);
+ 			}
 
-// 			for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
-// 			{
-// 				cvLine(draw_data, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 3);
-// 			}
+ 			for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
+ 			{
+ 				cvLine(draw_data, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 3);
+ 			}
 
 			float pathpoint_dis = 200;
 			int jump_num2 = 20000, jump_num;
@@ -374,7 +379,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			path_optimization_size_change = path_optimization.size();
 //			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
 
-			m_show2.SetWindowPos(&wndTop, 10, 10, draw_data->width, draw_data->height, SWP_SHOWWINDOW);
+			
 
 			MultiRobot_Path_simulation(pDC2, show_data, jump_path_optimization, 2, jump_path_optimization_simulation, car_simulation, draw_data);
 			jump_path_optimization.clear();
@@ -1244,7 +1249,7 @@ void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_
 // 				cvShowImage("draw_data", live_show); // 動態顯示模擬
 // 				cvWaitKey(30); // 停留視窗
 				cvReleaseImageData(live_show);
-// 				Sleep(5);
+ 				Sleep(10);
 			}
 
 			CPoint temp_xy;

@@ -23,3 +23,5 @@ x = 19 parent[x] = 20
 x = 17 parent[x] = 19
 x = 10 parent[x] = 17
 x = 0 parent[x] = 10
+x = 142 parent[x] = 142
+x = 30 parent[x] = 142

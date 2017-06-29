@@ -1315,12 +1315,12 @@ void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_
 
 }
 
-void CPathplanningDlg::ServantRobot_Path_simulation(vector <CPoint> i_Servant_path, CvPoint2D64f &o_ServantRobot_pos, double &io_zdir)
+void CPathplanningDlg::ServantRobot_Path_simulation(vector <CPoint> i_Servant_path, CvPoint2D64f &o_ServantRobot_pos, CvPoint2D64f i_robot_start_point, double &io_zdir)
 {
 //	remove("子機器人輸出.txt");
 	fstream app_ServantRobot("子機器人輸出.txt", ios::app);
 
-	double sampleTime = 50;
+	double sampleTime = 40;
 	double pixel2cm = 100;
 	double rho_dot, alpha_dot, beta_dot;
 	double x_here, y_here, zdir_here = 0, theta_here;
@@ -1364,8 +1364,8 @@ void CPathplanningDlg::ServantRobot_Path_simulation(vector <CPoint> i_Servant_pa
 	}
 
 
-	double start_pointx_sim = jump_path_optimization_copy_sim[0].x;
-	double start_pointy_sim = jump_path_optimization_copy_sim[0].y;
+	double start_pointx_sim = i_robot_start_point.x;
+	double start_pointy_sim = i_robot_start_point.y;
 
 	car_x_sim = start_pointx_sim - jump_path_optimization_copy_sim[1].x  /*+ (double)rand() / (RAND_MAX + 1.0) * 4*/;
 	car_y_sim = -start_pointy_sim + jump_path_optimization_copy_sim[1].y  /*+ (double)rand() / (RAND_MAX + 1.0) * 4*/;
@@ -1560,7 +1560,7 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 	}
 
 	CvPoint2D64f temp_xy;
-	ServantRobot_Path_simulation(jump_path_optimization, temp_xy, robot_zdir[i_robot_num]);
+	ServantRobot_Path_simulation(jump_path_optimization, temp_xy, i_robot_start_point[i_robot_num], robot_zdir[i_robot_num]);
 
 	i_robot_start_point[i_robot_num] = temp_xy;
 

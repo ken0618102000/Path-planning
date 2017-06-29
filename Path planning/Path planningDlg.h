@@ -60,16 +60,16 @@ public:
 
 	void Match_point(int i_line_count, int i_new_input_index, CvPoint2D64f(&io_new_savepoint1)[3000], CvPoint2D64f(&io_new_savepoint2)[3000], float near_dis);
 
-	void Dijkstra_path_planning(int i_highest_robot_priority, CvPoint i_robot_start[5], CvPoint  i_robot_end[5], CvPoint2D64f i_new_savepoint1[3000], CvPoint2D64f i_new_savepoint2[3000], int i_new_input_index, vector <CPoint> &o_all_point_map, vector <CvPoint2D64f> &o_all_point_map_original);
+	void Dijkstra_path_planning(int i_highest_robot_priority, CvPoint2D64f i_robot_start[5], CvPoint2D64f  i_robot_end[5], CvPoint2D64f i_new_savepoint1[3000], CvPoint2D64f i_new_savepoint2[3000], int i_new_input_index, vector <CPoint> &o_all_point_map, vector <CvPoint2D64f> &o_all_point_map_original);
 
 	void Path_Optimization(vector<vector<bool>> i_sca_image, vector <CvPoint2D64f> i_all_point_map_original, vector <int> &o_path_optimization);
 
-	void MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_data, vector <CPoint> i_host_path, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint i_robot_start_point[5], CvPoint i_robot_end_point[5], int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show);
+	void MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_data, vector <CPoint> i_host_path, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show);
 	//輸入路徑、車子間距，輸出模擬路徑、車子
 
-	void ServantRobot_Path_simulation(vector <CPoint> i_Servant_path, CvPoint &o_ServantRobot_pos, double &io_zdir);
+	void ServantRobot_Path_simulation(vector <CPoint> i_Servant_path, CvPoint2D64f &o_ServantRobot_pos, double &io_zdir);
 
-	void servant_path(int i_robot_num, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint i_robot_start_point[5], CvPoint i_robot_end_point[5], vector <CPoint> i_sim_path);
+	void servant_path(int i_robot_num, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], vector <CPoint> i_sim_path);
 
 	void Control_Methods(bool control_type, double i_rho, double i_alpha, double i_beta, double i_phi, double &o_vr, double &o_vl, int &o_state);
 	CStatic m_show;

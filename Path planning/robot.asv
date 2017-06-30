@@ -22,6 +22,6 @@ figure(2);
 show_img = image([0 880],[0 880],A);hold on;
 plot(Car1_x,Car1_y,'r','LineWidth',2);hold on;
 plot(Car2_x,Car2_y,'g','LineWidth',2);hold on;
-plot(Car3_x,Car3_y,'blue','LineWidth',2);hold on;
+plot(Car3_x,Car3_y,'','LineWidth',2);hold on;
 
    

@@ -222,27 +222,33 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 	char path0[100];
 	int photo_conunt = 0;
 
-	CvPoint2D64f robot_start_point[5], robot_end_point[5];  //宣告多機器人之起點與終點
+	CvPoint2D64f robot_start_point[5] = { 0 }, robot_end_point[5] = { 0 };  //宣告多機器人之起點與終點
 	robot_start_point[0].x = 180;  //路徑起始與終點，請參照圖片給定
 	robot_start_point[0].y = 880;
 	robot_end_point[0].x = 640;
 	robot_end_point[0].y = 39;
 
-	robot_start_point[1].x = 20;  //路徑起始與終點，請參照圖片給定
-	robot_start_point[1].y = 700;
-	robot_end_point[1].x = 800;
-	robot_end_point[1].y = 39;
+// 	robot_start_point[1].x = 20;  //路徑起始與終點，請參照圖片給定
+// 	robot_start_point[1].y = 700;
+// 	robot_end_point[1].x = 800;
+// 	robot_end_point[1].y = 39;
 
 	robot_start_point[1].x = 20;  //路徑起始與終點，請參照圖片給定
 	robot_start_point[1].y = 700;
 	robot_end_point[1].x = 800;
 	robot_end_point[1].y = 500;
-	
+
+	robot_start_point[2].x = 800;  //路徑起始與終點，請參照圖片給定
+	robot_start_point[2].y = 700;
+	robot_end_point[2].x = 20;
+	robot_end_point[2].y = 350;
+
+	photo_conunt = 1;
 	while (true)
 	 {
 		QueryPerformanceFrequency(&ts);
 		QueryPerformanceCounter(&tStart);
-
+		
 		sprintf_s(path0, "photo\\L%d.png", photo_conunt);
 		fstream in_image0(path0, ios::in);
 
@@ -1226,6 +1232,9 @@ void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_
 			if (abs(i_robot_start_point[1].x - i_robot_end_point[1].x) > 5 || abs(i_robot_start_point[1].y - i_robot_end_point[1].y) > 5)
 				servant_path(1, i_sca_image, i_save_coner, i_robot_start_point, i_robot_end_point, o_sim_path);
 
+			if (abs(i_robot_start_point[2].x - i_robot_end_point[2].x) > 5 || abs(i_robot_start_point[2].y - i_robot_end_point[1].y) > 5)
+				servant_path(2, i_sca_image, i_save_coner, i_robot_start_point, i_robot_end_point, o_sim_path);
+
 // 			app_pos_m_sim
 // 				<< zdir_here << "  "
 // 				<< x_here << "  "
@@ -1253,7 +1262,17 @@ void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_
 				draw_the_car[1].car[4] = cvPoint(i_robot_start_point[1].x, i_robot_start_point[1].y);
 				draw_the_car[1].car[5] = cvPoint(i_robot_start_point[1].x + 40 * cos(robot_zdir[1]), i_robot_start_point[1].y - 40 * sin(robot_zdir[1]));
 
-				app_pos_m_sim << draw_the_car[0].car[4].x<<" "<< draw_the_car[0].car[4].y << " " << draw_the_car[1].car[4].x << " " << draw_the_car[1].car[4].y << endl;
+				draw_the_car[2].car[0] = cvPoint(i_robot_start_point[2].x + carsize * cos(robot_zdir[2] + 0.7854), i_robot_start_point[2].y - carsize * sin(robot_zdir[2] + 0.7854));
+				draw_the_car[2].car[1] = cvPoint(i_robot_start_point[2].x + carsize * cos(0.7854 - robot_zdir[2]), i_robot_start_point[2].y + carsize * sin(0.7854 - robot_zdir[2]));
+				draw_the_car[2].car[2] = cvPoint(i_robot_start_point[2].x - carsize * cos(robot_zdir[2] + 0.7854), i_robot_start_point[2].y + carsize * sin(robot_zdir[2] + 0.7854));
+				draw_the_car[2].car[3] = cvPoint(i_robot_start_point[2].x - carsize * cos(0.7854 - robot_zdir[2]), i_robot_start_point[2].y - carsize * sin(0.7854 - robot_zdir[2]));
+				draw_the_car[2].car[4] = cvPoint(i_robot_start_point[2].x, i_robot_start_point[2].y);
+				draw_the_car[2].car[5] = cvPoint(i_robot_start_point[2].x + 40 * cos(robot_zdir[2]), i_robot_start_point[2].y - 40 * sin(robot_zdir[2]));
+
+
+				app_pos_m_sim << draw_the_car[0].car[4].x << " " << draw_the_car[0].car[4].y << " " << zdir_here << " " 
+									<< draw_the_car[1].car[4].x << " " << draw_the_car[1].car[4].y << " " << robot_zdir[1] << " "
+									<< draw_the_car[2].car[4].x << " " << draw_the_car[2].car[4].y << " " << robot_zdir[2] << endl;
 
 
 				local_draw_car.push_back(draw_the_car[0]);
@@ -1269,6 +1288,12 @@ void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_
 				cvLine(live_show, draw_the_car[1].car[2], draw_the_car[1].car[3], CV_RGB(0, 255, 0), 2);
 				cvLine(live_show, draw_the_car[1].car[3], draw_the_car[1].car[0], CV_RGB(0, 255, 0), 2);
 				cvLine(live_show, draw_the_car[1].car[4], draw_the_car[1].car[5], CV_RGB(255, 0, 0), 2);
+
+				cvLine(live_show, draw_the_car[2].car[0], draw_the_car[2].car[1], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_the_car[2].car[1], draw_the_car[2].car[2], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_the_car[2].car[2], draw_the_car[2].car[3], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_the_car[2].car[3], draw_the_car[2].car[0], CV_RGB(0, 255, 0), 2);
+				cvLine(live_show, draw_the_car[2].car[4], draw_the_car[2].car[5], CV_RGB(255, 0, 0), 2);
 
 // 				cvLine(offline_show, draw_host_car.car[0], draw_host_car.car[1], CV_RGB(0, 255, 0), 2);
 // 				cvLine(offline_show, draw_host_car.car[1], draw_host_car.car[2], CV_RGB(0, 255, 0), 2);
@@ -1452,6 +1477,7 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 
 	draw_data2 = cvCreateImage(cvSize(880, 880), 8, 3);
 	Point host_position[9];
+	Point other_position;
 
 	//----------------------------清除數據----------------------------------------------------------------------
 	memset((unsigned char*)draw_data2->imageData, 255, draw_data2->imageSize);
@@ -1461,6 +1487,9 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 	memset(w, 0, sizeof(w));
 	show_path.clear();
 	//-------------------------------------------------------------------------------------------------------------
+
+
+
 
 	host_position[0].x = i_sim_path[i_sim_path.size() - 1].x / 10;
 	host_position[0].y = i_sim_path[i_sim_path.size() - 1].y / 10;
@@ -1474,8 +1503,21 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 	host_position[1].y = host_position[0].y + 0;
 
 
+
 	//輸入二值資料，輸出角點
 	find_coner(i_sca_image, save_coner, 4);
+	//插入其他子機器人之位置與障礙
+	for (int i = 1; i < 5; i++)
+	{
+		if (i_robot_start_point[i].x == 0 && i_robot_start_point[i].y == 0 || i == i_robot_num)
+			continue;
+
+		other_position.x = i_robot_start_point[i].x / 10;
+		other_position.y = i_robot_start_point[i].y / 10;
+
+		save_coner.push_back(other_position);
+		i_sca_image[other_position.y][other_position.x] = 1;
+	}
 	//插入主機器人之位置與障礙
 	for (int i = 0; i < 1; i++)
 	{
@@ -1602,8 +1644,8 @@ void CPathplanningDlg::Control_Methods(bool control_type, double i_rho, double i
 
 		//-------------------------normalize----------------------------------
 		double temp = abs(o_vr) + abs(o_vl);
-		o_vr = 100 * o_vr / temp;
-		o_vl = 100 * o_vl / temp;
+		o_vr = 50 * o_vr / temp;
+		o_vl = 50 * o_vl / temp;
 	}
 	else
 	{

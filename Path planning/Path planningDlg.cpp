@@ -12,6 +12,7 @@
 #include "math.h"
 #include "queue"
 #include "CvvImage.cpp"
+#include "omp.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -172,6 +173,7 @@ bool visit[2000];  // 紀錄各個點是不是已在最短路徑樹之中
 int w[2000][2000];    // 一張有權重的圖
 vector <int> show_path;
 double robot_zdir[5] = { 0 };
+vector <CvPoint> all_robot_path[5];
 
 void CPathplanningDlg::OnBnClickedButtonStart()
 {
@@ -181,6 +183,11 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 
 	remove("路徑輸出.txt");
 	remove("子機器人輸出.txt");
+	remove("master_recoder.avi");
+	remove("slave_recoder_1.avi");
+	remove("slave_recoder_2.avi");
+	remove("slave_recoder_3.avi");
+
 
 	IplConvKernel *pKernel_small = NULL;
 	IplConvKernel *pKernel_small2 = NULL;
@@ -224,31 +231,36 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 
 	CvPoint2D64f robot_start_point[5] = { 0 }, robot_end_point[5] = { 0 };  //宣告多機器人之起點與終點
 	robot_start_point[0].x = 180;  //路徑起始與終點，請參照圖片給定
-	robot_start_point[0].y = 880;
+	robot_start_point[0].y = 820;
 	robot_end_point[0].x = 640;
 	robot_end_point[0].y = 39;
 
-// 	robot_start_point[1].x = 20;  //路徑起始與終點，請參照圖片給定
-// 	robot_start_point[1].y = 700;
-// 	robot_end_point[1].x = 800;
-// 	robot_end_point[1].y = 39;
+	// 	robot_start_point[1].x = 20;  //路徑起始與終點，請參照圖片給定
+	// 	robot_start_point[1].y = 700;
+	// 	robot_end_point[1].x = 800;
+	// 	robot_end_point[1].y = 39;
 
-	robot_start_point[1].x = 20;  //路徑起始與終點，請參照圖片給定
-	robot_start_point[1].y = 700;
-	robot_end_point[1].x = 800;
-	robot_end_point[1].y = 500;
-
-	robot_start_point[2].x = 800;  //路徑起始與終點，請參照圖片給定
-	robot_start_point[2].y = 700;
-	robot_end_point[2].x = 20;
-	robot_end_point[2].y = 350;
+// 	robot_start_point[1].x = 700;  //路徑起始與終點，請參照圖片給定
+// 	robot_start_point[1].y = 800;
+// 	robot_end_point[1].x = 500;
+// 	robot_end_point[1].y = 100;
+// 
+// 	robot_start_point[2].x = 800;  //路徑起始與終點，請參照圖片給定
+// 	robot_start_point[2].y = 400;
+// 	robot_end_point[2].x = 300;
+// 	robot_end_point[2].y = 800;
+// 
+// 	robot_start_point[3].x = 20;  //路徑起始與終點，請參照圖片給定
+// 	robot_start_point[3].y = 350;
+// 	robot_end_point[3].x = 600;
+// 	robot_end_point[3].y = 700;
 
 	photo_conunt = 1;
 	while (true)
-	 {
+	{
 		QueryPerformanceFrequency(&ts);
 		QueryPerformanceCounter(&tStart);
-		
+
 		sprintf_s(path0, "photo\\L%d.png", photo_conunt);
 		fstream in_image0(path0, ios::in);
 
@@ -257,7 +269,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 
 		read_data = cvLoadImage(path0, 0);
 
-		
+
 		cvAbsDiff(read_data, read_data_old, check_change);
 		cvResize(read_data, read_data_old, CV_INTER_NN);
 		cvResize(check_change, show_data, CV_INTER_NN);
@@ -300,15 +312,15 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 
 			//---------------------------------------------------------------------
 
- 
+
 			cvResize(read_data, pGrayImg, CV_INTER_NN);//讀黑白影像用的
 	//		cvCvtColor(read_data, pGrayImg, CV_RGB2GRAY);  //讀彩色影像用的
 			cvErode(pGrayImg, pGrayImg, pKernel_small, 2);  //侵蝕的相反(因為是白底)
 			cvDilate(pGrayImg, pGrayImg, pKernel_small, 1);  //膨脹的相反
 			cvCvtColor(pGrayImg, draw_data, CV_GRAY2RGB);
-//			cvSaveImage("給連通物件用的.bmp", pGrayImg);
+			//			cvSaveImage("給連通物件用的.bmp", pGrayImg);
 
-			//數值要依據縮小倍率與格點pixel數決定
+						//數值要依據縮小倍率與格點pixel數決定
 
 
 			cvResize(pGrayImg, show_data, CV_INTER_NN);
@@ -331,23 +343,24 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			//路徑優化，輸入二值資訊與原本路徑
 			Path_Optimization(sca_image, all_point_map_original, path_optimization);
 
-			
+
 
 			//-------------------------------------------繪圖---------------------------------------
-
+//			cvDilate(draw_data, draw_data, pKernel_small, 2);  //膨脹的相反
 // 			for (int i = 0; i < save_coner.size(); i++)  //角點圖
 // 			{
 // 				cvLine(draw_data, cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), CV_RGB(0, 250, 250), 8);
 // 			}
- 			for (int i = 0; i < line_count; i++)   //VD圖
- 			{
- 				cvLine(draw_data, cvPoint(savepoint1[i].x * 10, savepoint1[i].y * 10), cvPoint(savepoint2[i].x * 10, savepoint2[i].y * 10), CV_RGB(0, 0, 255), 1);
- 			}
+// 			for (int i = 0; i < line_count; i++)   //VD圖
+// 			{
+// 				cvLine(draw_data, cvPoint(savepoint1[i].x * 10, savepoint1[i].y * 10), cvPoint(savepoint2[i].x * 10, savepoint2[i].y * 10), CV_RGB(0, 0, 255), 1);
+// 			}
+
  			for (int i = 0; i < new_input_index; i++)  //GVD圖
  			{
  				cvLine(draw_data, cvPoint(new_savepoint1[i].x * 10, new_savepoint1[i].y * 10), cvPoint(new_savepoint2[i].x * 10, new_savepoint2[i].y * 10), CV_RGB(250, 100, 100), 2);
  			}
-
+ 
  			for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
  			{
  				cvLine(draw_data, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 3);
@@ -357,7 +370,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			int jump_num2 = 20000, jump_num;
 			int path_opt = 0;
 
-			for (int path_opt = 0; path_opt < path_optimization.size() ; path_opt++) //路徑優化搜尋
+			for (int path_opt = 0; path_opt < path_optimization.size(); path_opt++) //路徑優化搜尋
 			{
 				if (path_optimization_size_change != path_optimization.size())
 				{
@@ -390,70 +403,71 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 			}
 
 			path_optimization_size_change = path_optimization.size();
-//			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
+			//			jump_path_optimization.push_back(all_point_map[path_optimization[path_opt]]);
 
-			
 
-			MultiRobot_Path_simulation(pDC2, show_data, jump_path_optimization, sca_image, save_coner, robot_start_point, robot_end_point, 2, jump_path_optimization_simulation, car_simulation, draw_data);
-			jump_path_optimization.clear();
+
+
 			cvSaveImage("大圖輸出.png", draw_data);
 			//-------------------------------------------繪製小地圖---------------------------------------
 
-// 			IplImage * itest2 = NULL;
-// 			IplImage * itest = NULL;
-// 			itest2 = cvCreateImage(cvSize(88, 88), IPL_DEPTH_8U, 1);
-// 			itest = cvCreateImage(cvSize(88, 88), IPL_DEPTH_8U, 3);
-// 			cvResize(read_data, itest2, CV_INTER_NN);
-// 			cvCvtColor(itest2, itest, CV_GRAY2RGB);
-// 
-// 			for (int i = 0; i < save_coner.size(); i++)  //角點圖
-// 			{
-// 				cvLine(itest, cvPoint(save_coner[i].x , save_coner[i].y ), cvPoint(save_coner[i].x, save_coner[i].y), CV_RGB(0, 250, 250), 1);
-// 			}
-// 			for (int i = 0; i < line_count; i++)   //VD圖
-// 			{
-// 				cvLine(itest, cvPoint(savepoint1[i].x, savepoint1[i].y), cvPoint(savepoint2[i].x, savepoint2[i].y), CV_RGB(250, 200, 100), 1);
-// 			}
-// 			for (int i = 0; i < new_input_index; i++)  //GVD圖
-// 			{
-// 				cvLine(itest, cvPoint(new_savepoint1[i].x, new_savepoint1[i].y), cvPoint(new_savepoint2[i].x, new_savepoint2[i].y), CV_RGB(250, 100, 100), 1);
-// 			}
-// 
-// 			for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
-// 			{
-// 				cvLine(itest, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 1);
-// 			}
-// 
-// 			for (int path_opt = 0; path_opt < path_optimization.size() - 1; path_opt++) //畫出路徑優化圖
-// 			{
-// 
-// 				cvLine(itest, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), cvPoint(all_point_map[path_optimization[path_opt + 1]].x, all_point_map[path_optimization[path_opt + 1]].y), CV_RGB(0, 150, 0), 1);
-// 
-// 				cvCircle(itest, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), 7, CV_RGB(0, 150, 0), 1);
-// 
-// 			}
-// 
-// 			cvSaveImage("輸出.png", itest);
-// 			cvReleaseImage(&itest);
+			IplImage * itest2 = NULL;
+			IplImage * itest = NULL;
+			itest2 = cvCreateImage(cvSize(88, 88), IPL_DEPTH_8U, 1);
+			itest = cvCreateImage(cvSize(88, 88), IPL_DEPTH_8U, 3);
+			cvResize(read_data, itest2, CV_INTER_NN);
+			cvCvtColor(itest2, itest, CV_GRAY2RGB);
 
+			for (int i = 0; i < save_coner.size(); i++)  //角點圖
+			{
+				cvLine(itest, cvPoint(save_coner[i].x , save_coner[i].y ), cvPoint(save_coner[i].x, save_coner[i].y), CV_RGB(0, 250, 250), 1);
+			}
+			for (int i = 0; i < line_count; i++)   //VD圖
+			{
+				cvLine(itest, cvPoint(savepoint1[i].x, savepoint1[i].y), cvPoint(savepoint2[i].x, savepoint2[i].y), CV_RGB(250, 200, 100), 1);
+			}
+			for (int i = 0; i < new_input_index; i++)  //GVD圖
+			{
+				cvLine(itest, cvPoint(new_savepoint1[i].x, new_savepoint1[i].y), cvPoint(new_savepoint2[i].x, new_savepoint2[i].y), CV_RGB(250, 100, 100), 1);
+			}
+
+			for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
+			{
+				cvLine(itest, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 1);
+			}
+
+			for (int path_opt = 0; path_opt < path_optimization.size() - 1; path_opt++) //畫出路徑優化圖
+			{
+
+				cvLine(itest, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), cvPoint(all_point_map[path_optimization[path_opt + 1]].x, all_point_map[path_optimization[path_opt + 1]].y), CV_RGB(0, 150, 0), 1);
+
+				cvCircle(itest, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), 7, CV_RGB(0, 150, 0), 1);
+
+			}
+
+			cvSaveImage("輸出.png", itest);
+			cvReleaseImage(&itest);
+
+			MultiRobot_Path_simulation(pDC2, show_data, jump_path_optimization, sca_image, save_coner, robot_start_point, robot_end_point, 2, jump_path_optimization_simulation, car_simulation, draw_data);
+			jump_path_optimization.clear();
 			//-------------------------------------------繪圖---------------------------------------
 		}
 
 
 
 		memset((unsigned char*)show_data->imageData, 0, show_data->imageSize);
- 		cvReleaseImage(&read_data);
-		
+		cvReleaseImage(&read_data);
+
 		QueryPerformanceCounter(&tEnd);
 
 		m_total_time = 1000 / ((tEnd.QuadPart - tStart.QuadPart) * 1000 / (double)(ts.QuadPart));
 		m_coner_count = Data[0] + 1; //顯示角點數量
 		UpdateData(FALSE);
 		break;
-//		photo_conunt++;
+		//		photo_conunt++;
 	}
 
-	
+
 }
 
 
@@ -603,8 +617,8 @@ void CPathplanningDlg::trans2Voronoi(vector<vector<bool>> i_sca_image, vector<Po
 
 void CPathplanningDlg::Voronoi_calculate(double i_Data[8000], int x_boundary, int y_boundary, CvPoint2D64f(&o_savepoint1)[3000], CvPoint2D64f(&o_savepoint2)[3000], int &o_line_count)
 {
-//	remove("原始VD座標輸出.txt");
-//	fstream app_VD_output2("原始VD座標輸出.txt", ios::app);
+	//	remove("原始VD座標輸出.txt");
+	//	fstream app_VD_output2("原始VD座標輸出.txt", ios::app);
 
 	CWnd* CW_vo = (CWnd *)GetDlgItem(IDC_STATIC_show);
 	CDC* pDC = CW_vo->GetWindowDC();
@@ -637,7 +651,7 @@ void CPathplanningDlg::Voronoi_calculate(double i_Data[8000], int x_boundary, in
 
 			if (aEdge.ep[0] && aEdge.ep[1])
 			{
-//				app_VD_output2 << *x1 << ", " << *y1 << " 到 " << *x2 << ", " << *y2 << ",第 " << line_count2 << endl;
+				//				app_VD_output2 << *x1 << ", " << *y1 << " 到 " << *x2 << ", " << *y2 << ",第 " << line_count2 << endl;
 				line_count2++;
 			}
 
@@ -701,7 +715,7 @@ void CPathplanningDlg::Voronoi_calculate(double i_Data[8000], int x_boundary, in
 
 	o_line_count = i_line_count;
 
-//	app_VD_output2.close();
+	//	app_VD_output2.close();
 	ReleaseDC(pDC);
 	delete vor;
 
@@ -709,8 +723,8 @@ void CPathplanningDlg::Voronoi_calculate(double i_Data[8000], int x_boundary, in
 
 void CPathplanningDlg::Generalized_Voronoi(vector<vector<bool>> i_sca_image, CvPoint2D64f i_savepoint1[3000], CvPoint2D64f i_savepoint2[3000], int i_line_count, int &o_new_input_index, CvPoint2D64f(&o_new_savepoint1)[3000], CvPoint2D64f(&o_new_savepoint2)[3000])
 {
-// 	remove("廣義VD座標輸出.txt");
-// 	fstream app_VD_output("廣義VD座標輸出.txt", ios::app);
+	remove("廣義VD座標輸出.txt");
+	fstream app_VD_output("廣義VD座標輸出.txt", ios::app);
 
 	int cheak_point = 0, line_distant, new_input_index = 0;
 	CvPoint2D64f cutout_point[2000];
@@ -724,7 +738,7 @@ void CPathplanningDlg::Generalized_Voronoi(vector<vector<bool>> i_sca_image, CvP
 		//		line_distant++;
 
 		int cutout = 0;
-		for (cutout = 0; cutout < line_distant; cutout++)
+		for (cutout = 0; cutout < line_distant+1; cutout++)
 		{
 			//計算斜線上的點
 			if (i_savepoint1[cheak_point].x >= i_savepoint2[cheak_point].x && i_savepoint1[cheak_point].y >= i_savepoint2[cheak_point].y)
@@ -736,13 +750,13 @@ void CPathplanningDlg::Generalized_Voronoi(vector<vector<bool>> i_sca_image, CvP
 			if (i_savepoint2[cheak_point].x >= i_savepoint1[cheak_point].x && i_savepoint1[cheak_point].y >= i_savepoint2[cheak_point].y)
 			{
 				cutout_point[cutout].x = i_savepoint1[cheak_point].x + (sqrt(pow((i_savepoint1[cheak_point].x - i_savepoint2[cheak_point].x), 2)) / (double)line_distant)*(double)cutout;
-				cutout_point[cutout].y = i_savepoint2[cheak_point].y + (sqrt(pow((i_savepoint1[cheak_point].y - i_savepoint2[cheak_point].y), 2)) / (double)line_distant)*(double)cutout;
+				cutout_point[cutout].y = i_savepoint1[cheak_point].y - (sqrt(pow((i_savepoint1[cheak_point].y - i_savepoint2[cheak_point].y), 2)) / (double)line_distant)*(double)cutout;
 			}
 
 			if (i_savepoint1[cheak_point].x >= i_savepoint2[cheak_point].x && i_savepoint2[cheak_point].y >= i_savepoint1[cheak_point].y)
 			{
 				cutout_point[cutout].x = i_savepoint2[cheak_point].x + (sqrt(pow((i_savepoint1[cheak_point].x - i_savepoint2[cheak_point].x), 2)) / (double)line_distant)*(double)cutout;
-				cutout_point[cutout].y = i_savepoint1[cheak_point].y + (sqrt(pow((i_savepoint1[cheak_point].y - i_savepoint2[cheak_point].y), 2)) / (double)line_distant)*(double)cutout;
+				cutout_point[cutout].y = i_savepoint2[cheak_point].y - (sqrt(pow((i_savepoint1[cheak_point].y - i_savepoint2[cheak_point].y), 2)) / (double)line_distant)*(double)cutout;
 			}
 
 			if (i_savepoint2[cheak_point].x >= i_savepoint1[cheak_point].x && i_savepoint2[cheak_point].y >= i_savepoint1[cheak_point].y)
@@ -754,12 +768,12 @@ void CPathplanningDlg::Generalized_Voronoi(vector<vector<bool>> i_sca_image, CvP
 
 		if (cutout < 3)
 		{
-// 			if ((cutout_point[0].y > i_sca_image.size() - 1) || (cutout_point[0].x > i_sca_image[0].size() - 1) || (cutout_point[0].y < 1 || (cutout_point[0].x < 1)))
-// 				continue;
+			// 			if ((cutout_point[0].y > i_sca_image.size() - 1) || (cutout_point[0].x > i_sca_image[0].size() - 1) || (cutout_point[0].y < 1 || (cutout_point[0].x < 1)))
+			// 				continue;
 
-			if (i_sca_image[round(cutout_point[0].y)][round(cutout_point[0].x)] == 0 /*||
-				i_sca_image[(int)cutout_point[0].y + 1][(int)cutout_point[0].x] == 0 ||
-				i_sca_image[(int)cutout_point[0].y - 1][(int)cutout_point[0].x] == 0 ||
+			if (i_sca_image[round(cutout_point[0].y)][round(cutout_point[0].x)] == 0 ||/*
+				i_sca_image[(int)cutout_point[0].y + 1][(int)cutout_point[0].x] == 0 ||*/
+				i_sca_image[(int)cutout_point[0].y - 1][(int)cutout_point[0].x] == 0 /*||
 				i_sca_image[(int)cutout_point[0].y][(int)cutout_point[0].x - 1] == 0 ||
 				 i_sca_image[(int)cutout_point[0].y][(int)cutout_point[0].x + 1] == 0*/)
 			{
@@ -772,7 +786,7 @@ void CPathplanningDlg::Generalized_Voronoi(vector<vector<bool>> i_sca_image, CvP
 
 		for (int i = 0; i < cutout - 1; i++)
 		{
-			if ((cutout_point[i].y>i_sca_image.size()-1) || (cutout_point[i].x > i_sca_image[0].size()-1) || (cutout_point[i].y < 1 || (cutout_point[i].x < 1)))
+			if ((cutout_point[i].y > i_sca_image.size() - 1) || (cutout_point[i].x > i_sca_image[0].size() - 1) || (cutout_point[i].y < 1 || (cutout_point[i].x < 1)))
 				continue;
 
 			if (i_sca_image[round(cutout_point[i].y)][round(cutout_point[i].x)] == 1 /* ||
@@ -789,7 +803,7 @@ void CPathplanningDlg::Generalized_Voronoi(vector<vector<bool>> i_sca_image, CvP
 				o_new_savepoint1[new_input_index] = i_savepoint1[cheak_point];
 				o_new_savepoint2[new_input_index] = i_savepoint2[cheak_point];
 
-//				app_VD_output << o_new_savepoint1[i].x * (double)10.0 << ", " << o_new_savepoint1[i].y * (double)10.0 << " 到 " << o_new_savepoint2[i].x * (double)10.0 << ", " << o_new_savepoint2[i].y * (double)10.0 << ", 第 " << new_input_index << endl;
+				app_VD_output << o_new_savepoint1[i].x * (double)10.0 << ", " << o_new_savepoint1[i].y * (double)10.0 << " 到 " << o_new_savepoint2[i].x * (double)10.0 << ", " << o_new_savepoint2[i].y * (double)10.0 << ", 第 " << new_input_index << endl;
 				new_input_index++;
 			}
 		}
@@ -1057,7 +1071,7 @@ void CPathplanningDlg::Path_Optimization(vector<vector<bool>> i_sca_image, vecto
 				cheak_x = round(cutout_point[cheak_pixel].x);
 				cheak_y = round(cutout_point[cheak_pixel].y);
 
-				if ((cheak_y>i_sca_image.size() - 2) || (cheak_x > i_sca_image.size() - 2) || (cheak_y < 1 || (cheak_x < 1)))
+				if ((cheak_y > i_sca_image.size() - 2) || (cheak_x > i_sca_image.size() - 2) || (cheak_y < 1 || (cheak_x < 1)))
 					continue;
 
 				if (i_sca_image[cheak_y][cheak_x] == 1 ||
@@ -1098,9 +1112,28 @@ void CPathplanningDlg::Path_Optimization(vector<vector<bool>> i_sca_image, vecto
 	}
 }
 
-void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_data, vector <CPoint> i_host_path, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show)
+void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC ,IplImage * i_draw_data, vector <CPoint> i_host_path, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show)
 {
-	double sampleTime = 35;
+	CvVideoWriter *master_recoder;
+	char master_recoder_name[] = "master_recoder.avi";
+	int FPS = 25;
+	CvSize AviSize = cvSize(880, 880);
+	int AviColor = 1;
+	master_recoder = cvCreateVideoWriter(master_recoder_name, CV_FOURCC('D', 'I', 'V', 'X'), FPS, AviSize, AviColor);
+
+	CvVideoWriter *slave_recoder_1;
+	char slave_recoder_name_1[] = "slave_recoder_1.avi";
+	slave_recoder_1 = cvCreateVideoWriter(slave_recoder_name_1, CV_FOURCC('D', 'I', 'V', 'X'), FPS, AviSize, AviColor);
+
+	CvVideoWriter *slave_recoder_2;
+	char slave_recoder_name_2[] = "slave_recoder_2.avi";
+	slave_recoder_2 = cvCreateVideoWriter(slave_recoder_name_2, CV_FOURCC('D', 'I', 'V', 'X'), FPS, AviSize, AviColor);
+
+	CvVideoWriter *slave_recoder_3;
+	char slave_recoder_name_3[] = "slave_recoder_3.avi";
+	slave_recoder_3 = cvCreateVideoWriter(slave_recoder_name_3, CV_FOURCC('D', 'I', 'V', 'X'), FPS, AviSize, AviColor);
+
+	double sampleTime = 38;
 	double pixel2cm = 100;
 	double rho_dot, alpha_dot, beta_dot;
 	double x_here, y_here, zdir_here = 0, theta_here;
@@ -1112,18 +1145,18 @@ void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_
 	vector <draw_car>local_draw_car;
 	int jump_draw = 0, state;
 	//CvPoint draw_car[6];
-	int carsize = 20;
+	int carsize = 10;
 	int initial_scale = 100;
 	IplImage * live_show = NULL;
 
-// 	cvSetZero(draw_data);
+	// 	cvSetZero(draw_data);
 	CvPoint draw_oringin[2];
 
- 	remove("control_pos_m_sim.txt");
- 	fstream app_pos_m_sim("control_pos_m_sim.txt", ios::app);
+	remove("control_pos_m_sim.txt");
 
-// 	draw_oringin[0] = cvPoint(orgin.x, orgin.y);
-// 	draw_oringin[1] = cvPoint(orgin.x, 700 - orgin.y);
+
+	// 	draw_oringin[0] = cvPoint(orgin.x, orgin.y);
+	// 	draw_oringin[1] = cvPoint(orgin.x, 700 - orgin.y);
 
 	vector <CPoint>  jump_path_optimization_copy_sim;
 	jump_path_optimization_copy_sim.assign(i_host_path.begin(), i_host_path.end());
@@ -1222,128 +1255,86 @@ void CPathplanningDlg::MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_
 			zdir_here = -beta_sim - alpha_sim + target_pos_sim[2];  //加入 target_pos_sim[2]
 			jump_draw++;
 			x_save.push_back(x_here + x_transpos);
-			y_save.push_back(-y_here+ y_transpos);
+			y_save.push_back(-y_here + y_transpos);
 
 			CPoint temp_xy;
 			temp_xy.x = x_save[x_save.size() - 1];
 			temp_xy.y = y_save[y_save.size() - 1];
 			o_sim_path.push_back(temp_xy);
 
-			if (abs(i_robot_start_point[1].x - i_robot_end_point[1].x) > 5 || abs(i_robot_start_point[1].y - i_robot_end_point[1].y) > 5)
-				servant_path(1, i_sca_image, i_save_coner, i_robot_start_point, i_robot_end_point, o_sim_path);
+			i_robot_start_point[0].x = x_here + x_transpos;
+			i_robot_start_point[0].y = -y_here + y_transpos;
+			robot_zdir[0] = zdir_here;
 
-			if (abs(i_robot_start_point[2].x - i_robot_end_point[2].x) > 5 || abs(i_robot_start_point[2].y - i_robot_end_point[1].y) > 5)
-				servant_path(2, i_sca_image, i_save_coner, i_robot_start_point, i_robot_end_point, o_sim_path);
+// 			if (abs(i_robot_start_point[1].x - i_robot_end_point[1].x) > 10 || abs(i_robot_start_point[1].y - i_robot_end_point[1].y) > 10)
+// 				servant_path(1, i_draw_data, i_sca_image, i_save_coner, i_robot_start_point, i_robot_end_point, o_sim_path, carsize, slave_recoder_1);
+// 
+// 			if (abs(i_robot_start_point[2].x - i_robot_end_point[2].x) > 10 || abs(i_robot_start_point[2].y - i_robot_end_point[2].y) > 10)
+// 				servant_path(2, i_draw_data, i_sca_image, i_save_coner, i_robot_start_point, i_robot_end_point, o_sim_path, carsize, slave_recoder_2);
+// 
+// 			if (abs(i_robot_start_point[3].x - i_robot_end_point[3].x) > 10 || abs(i_robot_start_point[3].y - i_robot_end_point[3].y) > 10)
+// 				servant_path(3, i_draw_data, i_sca_image, i_save_coner, i_robot_start_point, i_robot_end_point, o_sim_path, carsize, slave_recoder_3);
 
-// 			app_pos_m_sim
-// 				<< zdir_here << "  "
-// 				<< x_here << "  "
-// 				<< y_here << "  "
-// 				<< endl;
+
+
+			// 			app_pos_m_sim
+			// 				<< zdir_here << "  "
+			// 				<< x_here << "  "
+			// 				<< y_here << "  "
+			// 				<< endl;
 
 			draw_car draw_the_car[5];
 
-			if (jump_draw % i_car_density == 1)  //i_car_density 顯示頻率，不顯示就設很大
+//			if (jump_draw % i_car_density == 1)  //i_car_density 顯示頻率，不顯示就設很大
+			if (1)
 			{
 				live_show = cvCloneImage(offline_show);
 
-				draw_the_car[0].car[0] = cvPoint(x_here + x_transpos + carsize * cos(zdir_here + 0.7854), -y_here + y_transpos - carsize * sin(zdir_here + 0.7854));
-				draw_the_car[0].car[1] = cvPoint(x_here + x_transpos + carsize * cos(0.7854 - zdir_here), -y_here + y_transpos + carsize * sin(0.7854 - zdir_here));
-				draw_the_car[0].car[2] = cvPoint(x_here + x_transpos - carsize * cos(zdir_here + 0.7854), -y_here + y_transpos + carsize * sin(zdir_here + 0.7854));
-				draw_the_car[0].car[3] = cvPoint(x_here + x_transpos - carsize * cos(0.7854 - zdir_here), -y_here + y_transpos - carsize * sin(0.7854 - zdir_here));
-				draw_the_car[0].car[4] = cvPoint(x_here + x_transpos, -y_here + y_transpos);
-				draw_the_car[0].car[5] = cvPoint(x_here + x_transpos + 40 * cos(zdir_here), -y_here + y_transpos - 40 * sin(zdir_here));
-
-
-				draw_the_car[1].car[0] = cvPoint(i_robot_start_point[1].x + carsize * cos(robot_zdir[1] + 0.7854), i_robot_start_point[1].y - carsize * sin(robot_zdir[1] + 0.7854));
-				draw_the_car[1].car[1] = cvPoint(i_robot_start_point[1].x + carsize * cos(0.7854 - robot_zdir[1]), i_robot_start_point[1].y + carsize * sin(0.7854 - robot_zdir[1]));
-				draw_the_car[1].car[2] = cvPoint(i_robot_start_point[1].x - carsize * cos(robot_zdir[1] + 0.7854), i_robot_start_point[1].y + carsize * sin(robot_zdir[1] + 0.7854));
-				draw_the_car[1].car[3] = cvPoint(i_robot_start_point[1].x - carsize * cos(0.7854 - robot_zdir[1]), i_robot_start_point[1].y - carsize * sin(0.7854 - robot_zdir[1]));
-				draw_the_car[1].car[4] = cvPoint(i_robot_start_point[1].x, i_robot_start_point[1].y);
-				draw_the_car[1].car[5] = cvPoint(i_robot_start_point[1].x + 40 * cos(robot_zdir[1]), i_robot_start_point[1].y - 40 * sin(robot_zdir[1]));
-
-				draw_the_car[2].car[0] = cvPoint(i_robot_start_point[2].x + carsize * cos(robot_zdir[2] + 0.7854), i_robot_start_point[2].y - carsize * sin(robot_zdir[2] + 0.7854));
-				draw_the_car[2].car[1] = cvPoint(i_robot_start_point[2].x + carsize * cos(0.7854 - robot_zdir[2]), i_robot_start_point[2].y + carsize * sin(0.7854 - robot_zdir[2]));
-				draw_the_car[2].car[2] = cvPoint(i_robot_start_point[2].x - carsize * cos(robot_zdir[2] + 0.7854), i_robot_start_point[2].y + carsize * sin(robot_zdir[2] + 0.7854));
-				draw_the_car[2].car[3] = cvPoint(i_robot_start_point[2].x - carsize * cos(0.7854 - robot_zdir[2]), i_robot_start_point[2].y - carsize * sin(0.7854 - robot_zdir[2]));
-				draw_the_car[2].car[4] = cvPoint(i_robot_start_point[2].x, i_robot_start_point[2].y);
-				draw_the_car[2].car[5] = cvPoint(i_robot_start_point[2].x + 40 * cos(robot_zdir[2]), i_robot_start_point[2].y - 40 * sin(robot_zdir[2]));
-
-
-				app_pos_m_sim << draw_the_car[0].car[4].x << " " << draw_the_car[0].car[4].y << " " << zdir_here << " " 
-									<< draw_the_car[1].car[4].x << " " << draw_the_car[1].car[4].y << " " << robot_zdir[1] << " "
-									<< draw_the_car[2].car[4].x << " " << draw_the_car[2].car[4].y << " " << robot_zdir[2] << endl;
-
+				for (int k = 0; k < 4; k++)
+					simulation_car(live_show, i_robot_start_point, robot_zdir, k, carsize);
 
 				local_draw_car.push_back(draw_the_car[0]);
 
-				cvLine(live_show, draw_the_car[0].car[0], draw_the_car[0].car[1], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[0].car[1], draw_the_car[0].car[2], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[0].car[2], draw_the_car[0].car[3], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[0].car[3], draw_the_car[0].car[0], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[0].car[4], draw_the_car[0].car[5], CV_RGB(255, 0, 0), 2);
+				CvvImage show1;
+				show1.CopyOf(live_show);
+				show1.Show(*i_pDC, 0, 0, live_show->width, live_show->height);
 
-				cvLine(live_show, draw_the_car[1].car[0], draw_the_car[1].car[1], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[1].car[1], draw_the_car[1].car[2], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[1].car[2], draw_the_car[1].car[3], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[1].car[3], draw_the_car[1].car[0], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[1].car[4], draw_the_car[1].car[5], CV_RGB(255, 0, 0), 2);
+				cvWriteFrame(master_recoder, live_show);
 
-				cvLine(live_show, draw_the_car[2].car[0], draw_the_car[2].car[1], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[2].car[1], draw_the_car[2].car[2], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[2].car[2], draw_the_car[2].car[3], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[2].car[3], draw_the_car[2].car[0], CV_RGB(0, 255, 0), 2);
-				cvLine(live_show, draw_the_car[2].car[4], draw_the_car[2].car[5], CV_RGB(255, 0, 0), 2);
-
-// 				cvLine(offline_show, draw_host_car.car[0], draw_host_car.car[1], CV_RGB(0, 255, 0), 2);
-// 				cvLine(offline_show, draw_host_car.car[1], draw_host_car.car[2], CV_RGB(0, 255, 0), 2);
-// 				cvLine(offline_show, draw_host_car.car[2], draw_host_car.car[3], CV_RGB(0, 255, 0), 2);
-// 				cvLine(offline_show, draw_host_car.car[3], draw_host_car.car[0], CV_RGB(0, 255, 0), 2);
-// 				cvLine(offline_show, draw_host_car.car[4], draw_host_car.car[5], CV_RGB(255, 0, 0), 2);
-				//					cvLine(draw_data, draw_oringin[0], draw_oringin[1], CV_RGB(255, 100, 255), 2);
-
- 				CvvImage show1;
- 				show1.CopyOf(live_show);
- 				show1.Show(*i_pDC, 0, 0, live_show->width, live_show->height);
-
-// 				cvShowImage("draw_data", live_show); // 動態顯示模擬
-// 				cvWaitKey(30); // 停留視窗
 				cvReleaseImageData(live_show);
-// 				Sleep(10);
 			}
 
-
-
-			if ((abs(x_here - target_pos_sim[0] * pixel2cm / 100) < 1  && abs(y_here - target_pos_sim[1] * pixel2cm / 100) < 1) /*|| jump_draw > 50 || zdir_here < 0.2*/)
+			if ((abs(x_here - target_pos_sim[0] * pixel2cm / 100) < 1 && abs(y_here - target_pos_sim[1] * pixel2cm / 100) < 1) /*|| jump_draw > 50 || zdir_here < 0.2*/)
 			{
 				jump_path_optimization_copy_sim.erase(jump_path_optimization_copy_sim.begin(), jump_path_optimization_copy_sim.begin() + 1);
 				break;
 			}
-
 		}
 
 		//			static_draw_car.assign(local_draw_car.begin(), local_draw_car.end());
-		
 
-		for (int i = 0; i < x_save.size() - 1; i++)
-		{
-			cvLine(offline_show, cvPoint((int)x_save[i], (int)y_save[i]), cvPoint((int)x_save[i + 1], (int)y_save[i + 1]), CV_RGB(150, 150, 255), 2);
-		}
+// 
+// 		for (int i = 0; i < x_save.size() - 1; i++)
+// 		{
+// 			cvLine(offline_show, cvPoint((int)x_save[i], (int)y_save[i]), cvPoint((int)x_save[i + 1], (int)y_save[i + 1]), CV_RGB(150, 150, 255), 2);
+// 		}
 
 	}
 
+	cvReleaseVideoWriter(&master_recoder);
+	cvReleaseVideoWriter(&slave_recoder_1);
+	cvReleaseVideoWriter(&slave_recoder_2);
+	cvReleaseVideoWriter(&slave_recoder_3);
 	cvReleaseImage(&live_show);
 	o_sim_car = local_draw_car;
 	local_draw_car.clear();
-
-	int dsfa = 0;
 
 }
 
 void CPathplanningDlg::ServantRobot_Path_simulation(vector <CPoint> i_Servant_path, CvPoint2D64f &o_ServantRobot_pos, CvPoint2D64f i_robot_start_point, double &io_zdir)
 {
-//	remove("子機器人輸出.txt");
-	fstream app_ServantRobot("子機器人輸出.txt", ios::app);
+	//	remove("子機器人輸出.txt");
+//	fstream app_ServantRobot("子機器人輸出.txt", ios::app);
 
 	double sampleTime = 40;
 	double pixel2cm = 100;
@@ -1413,7 +1404,7 @@ void CPathplanningDlg::ServantRobot_Path_simulation(vector <CPoint> i_Servant_pa
 	if (beta_sim > CV_PI)		beta_sim = -2 * CV_PI + beta_sim;
 	if (beta_sim < -CV_PI)		beta_sim = 2 * CV_PI + beta_sim;
 
-	app_ServantRobot << rho_sim << " " << alpha_sim << " " << beta_sim << " " << car_x_sim << " " << car_y_sim << " " << car_zdir_sim;
+//	app_ServantRobot << rho_sim << " " << alpha_sim << " " << beta_sim << " " << car_x_sim << " " << car_y_sim << " " << car_zdir_sim;
 	//----------------------------------------------------------------
 
 	Control_Methods(1, rho_sim, alpha_sim, beta_sim, zdir_here, vr, vl, state);
@@ -1449,15 +1440,15 @@ void CPathplanningDlg::ServantRobot_Path_simulation(vector <CPoint> i_Servant_pa
 	zdir_here = -beta_sim - alpha_sim + target_pos_sim[2];  //加入 target_pos_sim[2]
 	io_zdir = zdir_here;
 
-	app_ServantRobot << "    " << rho_sim << " " << alpha_sim << " " << beta_sim << " " << x_here << " " << y_here << " " << zdir_here << endl;
+//	app_ServantRobot << "    " << rho_sim << " " << alpha_sim << " " << beta_sim << " " << x_here << " " << y_here << " " << zdir_here << endl;
 
 	o_ServantRobot_pos.x = (x_here + x_transpos);
-	o_ServantRobot_pos.y = (-y_here + y_transpos);	
+	o_ServantRobot_pos.y = (-y_here + y_transpos);
 
-	app_ServantRobot.close();
+//	app_ServantRobot.close();
 }
 
-void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], vector <CPoint> i_sim_path)
+void CPathplanningDlg::servant_path(int i_robot_num, IplImage * i_pGrayImg, vector<vector<bool>> i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], vector <CPoint> i_sim_path, int i_carsize, CvVideoWriter *i_slave_recoder)
 {
 	int corner_count = 0;
 	int line_count = 0;  //有多少VD線段
@@ -1473,14 +1464,21 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 	vector <CvPoint2D64f> all_point_map_original;
 	vector <int> path_optimization;
 	vector <Point> save_coner;
+	IplImage * draw_data3 = NULL;
 	IplImage * draw_data2 = NULL;
+	IplImage * draw_data1 = NULL;
 
+//	draw_data3 = cvCreateImage(cvGetSize(i_pGrayImg), 8, 3);
 	draw_data2 = cvCreateImage(cvSize(880, 880), 8, 3);
-	Point host_position[9];
+	draw_data1 = cvCreateImage(cvSize(880, 880), 8, 1);
+	draw_data3 = cvCloneImage(i_pGrayImg);
+
+	Point host_position[50];
 	Point other_position;
 
 	//----------------------------清除數據----------------------------------------------------------------------
 	memset((unsigned char*)draw_data2->imageData, 255, draw_data2->imageSize);
+	memset((unsigned char*)draw_data1->imageData, 255, draw_data1->imageSize);
 	memset(d, 0, sizeof(d));
 	memset(parent, 0, sizeof(parent));
 	memset(visit, 0, sizeof(visit));
@@ -1493,21 +1491,29 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 
 	host_position[0].x = i_sim_path[i_sim_path.size() - 1].x / 10;
 	host_position[0].y = i_sim_path[i_sim_path.size() - 1].y / 10;
-	host_position[1].x = host_position[0].x + 0;
-	host_position[1].y = host_position[0].y + 1;
-	host_position[2].x = host_position[0].x + 1;
-	host_position[2].y = host_position[0].y + 0;
-	host_position[3].x = host_position[0].x + 0;
-	host_position[3].y = host_position[0].y - 1;
-	host_position[1].x = host_position[0].x - 1;
-	host_position[1].y = host_position[0].y + 0;
 
-
+// 	for (int i = 0; i < 2; i++)
+// 	{
+// 		for (int j = -2; j < 2; j++)
+// 		{
+// 			host_position[i * 4 + (j + 3)].x = host_position[0].x + j;
+// 			host_position[i * 4 + (j + 3)].y = host_position[0].y - i;
+// 		}
+// 	}
+// 
+// 	//插入主機器人之位置與障礙
+// 	for (int i = 0; i < 8; i++)
+// 	{
+// 		//		save_coner.push_back(host_position[i]);
+// 		i_sca_image[host_position[i].y][host_position[i].x] = 1;
+// 
 
 	//輸入二值資料，輸出角點
 	find_coner(i_sca_image, save_coner, 4);
 	//插入其他子機器人之位置與障礙
-	for (int i = 1; i < 5; i++)
+
+
+	for (int i = i_robot_num; i > 0; i--)
 	{
 		if (i_robot_start_point[i].x == 0 && i_robot_start_point[i].y == 0 || i == i_robot_num)
 			continue;
@@ -1517,13 +1523,13 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 
 		save_coner.push_back(other_position);
 		i_sca_image[other_position.y][other_position.x] = 1;
+		cvSetReal2D(draw_data3, other_position.y, other_position.x, 0);
 	}
-	//插入主機器人之位置與障礙
-	for (int i = 0; i < 1; i++)
-	{
-		save_coner.push_back(host_position[i]);
-		i_sca_image[host_position[i].y][host_position[i].x] = 1;
-	}
+
+	save_coner.push_back(host_position[0]);
+	i_sca_image[host_position[0].y][host_position[0].x] = 1;
+	cvSetReal2D(draw_data3, host_position[0].y, host_position[0].x, 0);
+
 	//將角點轉換為準備要丟入Voronoi運算的格式
 	trans2Voronoi(i_sca_image, save_coner, Data, 8);
 	//計算狹義Voronoi，輸入角點資料與邊界，輸出兩個矩陣
@@ -1537,27 +1543,31 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 	//路徑優化，輸入二值資訊與原本路徑
 	Path_Optimization(i_sca_image, all_point_map_original, path_optimization);
 
-
+	cvResize(draw_data3, draw_data1, CV_INTER_NN);
+	cvCvtColor(draw_data1, draw_data2, CV_GRAY2RGB);
 
 	//-------------------------------------------繪圖---------------------------------------
 
-// 	for (int i = 0; i < save_coner.size(); i++)  //角點圖
-// 	{
-// 		cvLine(draw_data2, cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), CV_RGB(0, 250, 250), 8);
-// 	}
-// 	for (int i = 0; i < line_count; i++)   //VD圖
-// 	{
-// 		cvLine(draw_data2, cvPoint(savepoint1[i].x * 10, savepoint1[i].y * 10), cvPoint(savepoint2[i].x * 10, savepoint2[i].y * 10), CV_RGB(0, 0, 255), 1);
-// 	}
-// 	for (int i = 0; i < new_input_index; i++)  //GVD圖
-// 	{
-// 		cvLine(draw_data2, cvPoint(new_savepoint1[i].x * 10, new_savepoint1[i].y * 10), cvPoint(new_savepoint2[i].x * 10, new_savepoint2[i].y * 10), CV_RGB(250, 100, 100), 2);
-// 	}
-// 
-// 	for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
-// 	{
-// 		cvLine(draw_data2, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 3);
-// 	}
+
+// 		for (int i = 0; i < save_coner.size(); i++)  //角點圖
+// 		{
+// 			cvLine(draw_data2, cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), cvPoint(save_coner[i].x * 10, save_coner[i].y * 10), CV_RGB(0, 250, 250), 8);
+// 		}
+// 		for (int i = 0; i < line_count; i++)   //VD圖
+// 		{
+// 			cvLine(draw_data2, cvPoint(savepoint1[i].x * 10, savepoint1[i].y * 10), cvPoint(savepoint2[i].x * 10, savepoint2[i].y * 10), CV_RGB(0, 0, 255), 1);
+// 		}
+		for (int i = 0; i < new_input_index; i++)  //GVD圖
+		{
+			cvLine(draw_data2, cvPoint(new_savepoint1[i].x * 10, new_savepoint1[i].y * 10), cvPoint(new_savepoint2[i].x * 10, new_savepoint2[i].y * 10), CV_RGB(250, 100, 100), 2);
+		}
+
+		for (int path_index = 0; path_index < show_path.size() - 1; path_index++) //畫出路徑圖
+		{
+			cvLine(draw_data2, cvPoint(all_point_map[show_path[path_index]].x, all_point_map[show_path[path_index]].y), cvPoint(all_point_map[show_path[path_index + 1]].x, all_point_map[show_path[path_index + 1]].y), CV_RGB(0, 0, 255), 3);
+		}
+	
+
 
 	float pathpoint_dis = 200;
 	int jump_num2 = 20000, jump_num;
@@ -1590,14 +1600,19 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 		else
 		{
 			pathpoint_dis = sqrtf(pow((all_point_map[path_optimization[0]].x - all_point_map[path_optimization[path_opt + 1]].x), 2) + pow((all_point_map[path_optimization[0]].y - all_point_map[path_optimization[path_opt + 1]].y), 2));
-//			cvLine(draw_data2, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), cvPoint(all_point_map[path_optimization[path_opt + 1]].x, all_point_map[path_optimization[path_opt + 1]].y), CV_RGB(0, 150, 0), 3);
-//			cvCircle(draw_data2, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), 7, CV_RGB(0, 150, 0), 2);
-				}
+
+
+				cvLine(draw_data2, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), cvPoint(all_point_map[path_optimization[path_opt + 1]].x, all_point_map[path_optimization[path_opt + 1]].y), CV_RGB(0, 150, 0), 3);
+//				cvCircle(draw_data2, cvPoint(all_point_map[path_optimization[path_opt]].x, all_point_map[path_optimization[path_opt]].y), 7, CV_RGB(0, 150, 0), 2);
+			
+		}
 	}
 
 	if (jump_path_optimization.size() < 2)
 	{
 		cvReleaseImage(&draw_data2);
+		cvReleaseImage(&draw_data1);
+		cvReleaseImage(&draw_data3);
 		return;
 	}
 
@@ -1606,9 +1621,19 @@ void CPathplanningDlg::servant_path(int i_robot_num, vector<vector<bool>> i_sca_
 
 	i_robot_start_point[i_robot_num] = temp_xy;
 
-// 	cvShowImage("draw_data", draw_data2); // 動態顯示模擬
-// 	cvWaitKey(30); // 停留視窗
+
+		for (int i = 0; i < 4; i++)
+			simulation_car(draw_data2, i_robot_start_point, robot_zdir, i, i_carsize);
+
+		cvWriteFrame(i_slave_recoder, draw_data2);
+
+// 		cvShowImage("draw_data", draw_data2); // 動態顯示模擬
+// 		cvWaitKey(30); // 停留視窗
+	
+
+	cvReleaseImage(&draw_data1);
 	cvReleaseImage(&draw_data2);
+	cvReleaseImage(&draw_data3);
 }
 
 void CPathplanningDlg::Control_Methods(bool control_type, double i_rho, double i_alpha, double i_beta, double i_phi, double &o_vr, double &o_vl, int &o_state)
@@ -1638,11 +1663,11 @@ void CPathplanningDlg::Control_Methods(bool control_type, double i_rho, double i
 		//原始線性控制
 		o_vr = 3 * i_rho + 0.15 * (18 * i_alpha - 4 * (i_beta));
 		o_vl = 3 * i_rho - 0.15 * (18 * i_alpha - 4 * (i_beta));
-//		o_vr = o_vr / 4;
-//		o_vl = o_vl / 4;
+		//		o_vr = o_vr / 4;
+		//		o_vl = o_vl / 4;
 
 
-		//-------------------------normalize----------------------------------
+				//-------------------------normalize----------------------------------
 		double temp = abs(o_vr) + abs(o_vl);
 		o_vr = 50 * o_vr / temp;
 		o_vl = 50 * o_vl / temp;
@@ -1757,15 +1782,83 @@ void CPathplanningDlg::Control_Methods(bool control_type, double i_rho, double i
 
 }
 
+void CPathplanningDlg::simulation_car(IplImage *& live_show, CvPoint2D64f i_robot_start_point[5], double i_robot_zdir[5], int i_car_num, int i_carsize)
+{
+	fstream app_pos_m_sim("control_pos_m_sim.txt", ios::app);
+	CvPoint car[6];
+	char num1[200];
+	CvFont Font1 = cvFont(2, 2);
+	CvPoint temp_path;
+
+	car[0] = cvPoint(i_robot_start_point[i_car_num].x + i_carsize * cos(robot_zdir[i_car_num] + 0.7854), i_robot_start_point[i_car_num].y - i_carsize * sin(robot_zdir[i_car_num] + 0.7854));
+	car[1] = cvPoint(i_robot_start_point[i_car_num].x + i_carsize * cos(0.7854 - robot_zdir[i_car_num]), i_robot_start_point[i_car_num].y + i_carsize * sin(0.7854 - robot_zdir[i_car_num]));
+	car[2] = cvPoint(i_robot_start_point[i_car_num].x - i_carsize * cos(robot_zdir[i_car_num] + 0.7854), i_robot_start_point[i_car_num].y + i_carsize * sin(robot_zdir[i_car_num] + 0.7854));
+	car[3] = cvPoint(i_robot_start_point[i_car_num].x - i_carsize * cos(0.7854 - robot_zdir[i_car_num]), i_robot_start_point[i_car_num].y - i_carsize * sin(0.7854 - robot_zdir[i_car_num]));
+	car[4] = cvPoint(i_robot_start_point[i_car_num].x, i_robot_start_point[i_car_num].y);
+	car[5] = cvPoint(i_robot_start_point[i_car_num].x + 20 * cos(robot_zdir[i_car_num]), i_robot_start_point[i_car_num].y - 20 * sin(robot_zdir[i_car_num]));
+
+
+	if (i_car_num != 3)
+		app_pos_m_sim << car[4].x << " " << car[4].y << " " << robot_zdir[i_car_num] << " ";
+	else
+		app_pos_m_sim << car[4].x << " " << car[4].y << " " << robot_zdir[i_car_num] << endl;
+
+	temp_path.x = i_robot_start_point[i_car_num].x;
+	temp_path.y = i_robot_start_point[i_car_num].y;
+
+	all_robot_path[i_car_num].push_back(temp_path);
+
+	if (i_car_num == 0)
+	{
+		cvLine(live_show, car[0], car[1], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[1], car[2], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[2], car[3], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[3], car[0], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[4], car[5], CV_RGB(255, 0, 0), 2);
+
+		for (int i = 0; i < all_robot_path[i_car_num].size(); i++)
+		{
+			if (i == 0)
+				continue;
+
+			cvLine(live_show, all_robot_path[i_car_num][i - 1], all_robot_path[i_car_num][i], CV_RGB(100, 100, 100), 1);
+		}
+
+		cvPutText(live_show, "Master", cvPoint(i_robot_start_point[i_car_num].x + 10, i_robot_start_point[i_car_num].y - 10), &Font1, Scalar(100, 100, 100));
+	}
+	else
+	{
+		cvLine(live_show, car[0], car[1], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[1], car[2], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[2], car[3], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[3], car[0], CV_RGB(0, 255, 0), 2);
+		cvLine(live_show, car[4], car[5], CV_RGB(255, 150, 150), 2);
+
+		for (int i = 0; i < all_robot_path[i_car_num].size(); i++)
+		{
+			if (i == 0)
+				continue;
+
+			cvLine(live_show, all_robot_path[i_car_num][i - 1], all_robot_path[i_car_num][i], CV_RGB(100, 100, 100), 1);
+		}
+
+		sprintf_s(num1, "Slave %d", i_car_num);
+		cvPutText(live_show, num1, cvPoint(i_robot_start_point[i_car_num].x + 10, i_robot_start_point[i_car_num].y - 10), &Font1, Scalar(100, 100, 100));
+	}
+
+
+	app_pos_m_sim.close();
+}
+
 void CPathplanningDlg::find_path(int x)   // 印出由起點到x點的最短路徑
 {
-//	fstream app_truepath_output("路徑輸出.txt", ios::app);
+	//	fstream app_truepath_output("路徑輸出.txt", ios::app);
 
 	if (x != parent[x]) // 先把之前的路徑都印出來
 		find_path(parent[x]);
 
-//	app_truepath_output << "x = " << x << " parent[x] = " << parent[x] << endl;
-//	app_truepath_output.close();
+	//	app_truepath_output << "x = " << x << " parent[x] = " << parent[x] << endl;
+	//	app_truepath_output.close();
 	show_path.push_back(x);
 }
 

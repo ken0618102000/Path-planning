@@ -64,14 +64,17 @@ public:
 
 	void Path_Optimization(vector<vector<bool>> i_sca_image, vector <CvPoint2D64f> i_all_point_map_original, vector <int> &o_path_optimization);
 
-	void MultiRobot_Path_simulation(CDC* i_pDC, IplImage * i_draw_data, vector <CPoint> i_host_path, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show);
+	void MultiRobot_Path_simulation(CDC* i_pDC,IplImage * i_draw_data, vector <CPoint> i_host_path, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], int i_car_density, vector <CPoint> &o_sim_path, vector <draw_car> &o_sim_car, IplImage *&offline_show);
 	//輸入路徑、車子間距，輸出模擬路徑、車子
 
 	void ServantRobot_Path_simulation(vector <CPoint> i_Servant_path, CvPoint2D64f &o_ServantRobot_pos, CvPoint2D64f i_robot_start_point, double &io_zdir);
 
-	void servant_path(int i_robot_num, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], vector <CPoint> i_sim_path);
+	void servant_path(int i_robot_num, IplImage * i_pGrayImg, vector<vector<bool>>  i_sca_image, vector <Point> i_save_coner, CvPoint2D64f i_robot_start_point[5], CvPoint2D64f i_robot_end_point[5], vector <CPoint> i_sim_path, int i_carsize, CvVideoWriter *i_slave_recoder);
 
 	void Control_Methods(bool control_type, double i_rho, double i_alpha, double i_beta, double i_phi, double &o_vr, double &o_vl, int &o_state);
+
+	void simulation_car(IplImage * &live_show, CvPoint2D64f i_robot_start_point[5], double i_robot_zdir[5], int i_car_num, int i_carsize);
+
 	CStatic m_show;
 	int m_coner_count;
 	int m_total_time;

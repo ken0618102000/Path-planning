@@ -316,7 +316,7 @@ void CPathplanningDlg::OnBnClickedButtonStart()
 
 			cvResize(read_data, pGrayImg, CV_INTER_NN);//讀黑白影像用的
 	//		cvCvtColor(read_data, pGrayImg, CV_RGB2GRAY);  //讀彩色影像用的
-			cvErode(pGrayImg, pGrayImg, pKernel_small, 2);  //侵蝕的相反(因為是白底)
+			cvErode(pGrayImg, pGrayImg, pKernel_small, 3);  //侵蝕的相反(因為是白底)
 			cvDilate(pGrayImg, pGrayImg, pKernel_small, 1);  //膨脹的相反
 			cvCvtColor(pGrayImg, draw_data, CV_GRAY2RGB);
 			//			cvSaveImage("給連通物件用的.bmp", pGrayImg);
@@ -1051,12 +1051,12 @@ void CPathplanningDlg::Path_Optimization(vector<vector<bool>> i_sca_image, vecto
 				if (i_all_point_map_original[show_path[i]].x >= i_all_point_map_original[show_path[j]].x && i_all_point_map_original[show_path[j]].y >= i_all_point_map_original[show_path[i]].y)
 				{
 					cutout_point[cutout].x = i_all_point_map_original[show_path[j]].x + (sqrt(pow((i_all_point_map_original[show_path[i]].x - i_all_point_map_original[show_path[j]].x), 2)) / (double)line_distant)*(double)cutout;
-					cutout_point[cutout].y = i_all_point_map_original[show_path[i]].y + (sqrt(pow((i_all_point_map_original[show_path[i]].y - i_all_point_map_original[show_path[j]].y), 2)) / (double)line_distant)*(double)cutout;
+					cutout_point[cutout].y = i_all_point_map_original[show_path[j]].y - (sqrt(pow((i_all_point_map_original[show_path[i]].y - i_all_point_map_original[show_path[j]].y), 2)) / (double)line_distant)*(double)cutout;
 				}
 
 				if (i_all_point_map_original[show_path[j]].x >= i_all_point_map_original[show_path[i]].x && i_all_point_map_original[show_path[i]].y >= i_all_point_map_original[show_path[j]].y)
 				{
-					cutout_point[cutout].x = i_all_point_map_original[show_path[i]].x + (sqrt(pow((i_all_point_map_original[show_path[i]].x - i_all_point_map_original[show_path[j]].x), 2)) / (double)line_distant)*(double)cutout;
+					cutout_point[cutout].x = i_all_point_map_original[show_path[j]].x - (sqrt(pow((i_all_point_map_original[show_path[i]].x - i_all_point_map_original[show_path[j]].x), 2)) / (double)line_distant)*(double)cutout;
 					cutout_point[cutout].y = i_all_point_map_original[show_path[j]].y + (sqrt(pow((i_all_point_map_original[show_path[i]].y - i_all_point_map_original[show_path[j]].y), 2)) / (double)line_distant)*(double)cutout;
 				}
 
@@ -1662,8 +1662,8 @@ void CPathplanningDlg::Control_Methods(bool control_type, double i_rho, double i
 	if (control_type)
 	{
 		//原始線性控制
-		o_vr = 3 * i_rho + 0.15 * (18 * i_alpha - 4 * (i_beta));
-		o_vl = 3 * i_rho - 0.15 * (18 * i_alpha - 4 * (i_beta));
+		o_vr = 3 * i_rho + 0.15 * (15 * i_alpha - 7 * (i_beta));
+		o_vl = 3 * i_rho - 0.15 * (15 * i_alpha - 7 * (i_beta));
 		//		o_vr = o_vr / 4;
 		//		o_vl = o_vl / 4;
 
